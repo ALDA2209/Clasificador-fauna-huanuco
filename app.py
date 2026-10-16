@@ -295,8 +295,13 @@ st.write("")
 st.divider()
 
 # ---------- CARGA DE IMAGEN ----------
-st.markdown("#### ✨ Sube una foto para analizar")
-archivo = st.file_uploader("Formatos aceptados: JPG, JPEG, PNG", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+st.markdown("#### ✨ Sube una foto o usa la camara")
+metodo = st.radio("Metodo de entrada", ["Subir foto", "Usar camara"], horizontal=True, label_visibility="collapsed")
+
+if metodo == "Subir foto":
+    archivo = st.file_uploader("Formatos aceptados: JPG, JPEG, PNG", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+else:
+    archivo = st.camera_input("Toma una foto con tu camara")
 
 if archivo is not None:
     col_img, col_result = st.columns([1, 1.3])
