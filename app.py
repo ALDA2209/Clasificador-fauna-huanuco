@@ -1,7 +1,12 @@
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
+from datetime import datetime
+import pymongo
 
 st.set_page_config(page_title="Clasificador Fauna Huánuco", page_icon="🐾", layout="wide")
 
@@ -196,6 +201,18 @@ div[data-testid="stStatusWidget"] {
     font-size: 0.88rem;
     margin: 0;
 }
+
+[data-testid="stImage"] img {
+    max-height: 420px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+[data-testid="stImage"] {
+    display: flex;
+    justify-content: center;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -204,6 +221,23 @@ def cargar_modelo():
     return load_model("mejor_modelo.keras")
 
 modelo = cargar_modelo()
+
+@st.cache_resource
+def conectar_mongo():
+    uri = os.environ.get("MONGO_URI", "")
+    if not uri:
+        st.sidebar.error("⚠️ MONGO_URI no está definida")
+        return None
+    try:
+        client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=5000)
+        client.admin.command("ping")
+        db = client["fauna_huanuco"]
+        return db["predicciones"]
+    except Exception as e:
+        st.sidebar.error(f"⚠️ Error Mongo: {e}")
+        return None
+
+coleccion = conectar_mongo()
 
 # ---------- SIDEBAR ----------
 with st.sidebar:
@@ -225,6 +259,14 @@ with st.sidebar:
     biodiversidad y protección de fauna silvestre)
     del concurso **INNOBEST Huánuco 2026**.
     """)
+    st.divider()
+    if coleccion is not None:
+        try:
+            total = coleccion.count_documents({})
+            st.markdown("### 📊 Base de datos")
+            st.markdown(f"**{total}** predicciones registradas en MongoDB")
+        except Exception:
+            pass
     st.divider()
     st.caption("Desarrollado por Aldahir Pablo Silva Villar · SENATI Huánuco")
 
@@ -261,7 +303,7 @@ if archivo is not None:
 
     imagen = Image.open(archivo).convert("RGB")
     with col_img:
-        st.image(imagen, use_container_width=True, caption="Imagen cargada")
+        st.image(imagen, width=380, caption="Imagen cargada")
 
     img_resized = imagen.resize((224, 224))
     img_array = np.array(img_resized) / 255.0
@@ -289,6 +331,17 @@ if archivo is not None:
         prob = float(prediccion[0][i] * 100)
         st.markdown(f"**{EMOJIS[i]} {comun}** — {prob:.2f}%")
         st.progress(prob / 100)
+
+    if coleccion is not None:
+        try:
+            coleccion.insert_one({
+                "especie_cientifica": CLASES[indice],
+                "especie_comun": clase_predicha,
+                "confianza": confianza,
+                "fecha": datetime.utcnow()
+            })
+        except Exception:
+            pass
 else:
     st.markdown('<div class="section-subtitle">¿Cómo funciona?</div>', unsafe_allow_html=True)
     pasos = [
