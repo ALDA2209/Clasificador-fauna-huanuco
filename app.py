@@ -316,14 +316,25 @@ if archivo is not None:
     clase_predicha = NOMBRE_COMUN[indice]
     confianza = float(np.max(prediccion) * 100)
 
+    UMBRAL_CONFIANZA = 60.0
+
     with col_result:
-        st.markdown(f"""
-        <div class="result-card">
-            <h2>{EMOJIS[indice]} {clase_predicha}</h2>
-            <div class="confianza">{confianza:.1f}%</div>
-            <p style="color:#B9C9B2;">de confianza</p>
-        </div>
-        """, unsafe_allow_html=True)
+        if confianza < UMBRAL_CONFIANZA:
+            st.markdown(f"""
+            <div class="result-card">
+                <h2>❓ Especie no identificada</h2>
+                <div class="confianza">{confianza:.1f}%</div>
+                <p style="color:#B9C9B2;">Confianza insuficiente: la imagen podria no corresponder a ninguna de las 3 especies registradas.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="result-card">
+                <h2>{EMOJIS[indice]} {clase_predicha}</h2>
+                <div class="confianza">{confianza:.1f}%</div>
+                <p style="color:#B9C9B2;">de confianza</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.write("")
     st.markdown("##### Probabilidad por especie")
@@ -332,7 +343,7 @@ if archivo is not None:
         st.markdown(f"**{EMOJIS[i]} {comun}** — {prob:.2f}%")
         st.progress(prob / 100)
 
-    if coleccion is not None:
+    if coleccion is not None and confianza >= UMBRAL_CONFIANZA:
         try:
             coleccion.insert_one({
                 "especie_cientifica": CLASES[indice],
