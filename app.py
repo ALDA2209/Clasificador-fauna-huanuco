@@ -213,6 +213,17 @@ div[data-testid="stStatusWidget"] {
     display: flex;
     justify-content: center;
 }
+
+[data-testid="stCameraInput"] {
+    max-width: 380px;
+    margin: 0 auto;
+}
+[data-testid="stCameraInput"] video,
+[data-testid="stCameraInput"] img {
+    max-height: 380px;
+    object-fit: contain;
+    border-radius: 14px;
+}
 </style>
 """, unsafe_allow_html=True)
 
