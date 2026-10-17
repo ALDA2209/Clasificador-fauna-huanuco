@@ -4,9 +4,11 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
-from PIL import Image
+from PIL import Image, ImageDraw
 from datetime import datetime
 import pymongo
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
+import av
 
 st.set_page_config(page_title="Clasificador Fauna Huánuco", page_icon="🐾", layout="wide")
 
@@ -250,6 +252,15 @@ def conectar_mongo():
 
 coleccion = conectar_mongo()
 
+RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+
+class VideoProcessor(VideoProcessorBase):
+    def recv(self, frame):
+        img = frame.to_image()
+        draw = ImageDraw.Draw(img)
+        draw.text((10, 10), "PRUEBA - sin IA todavia", fill=(0, 255, 0))
+        return av.VideoFrame.from_image(img)
+
 # ---------- SIDEBAR ----------
 with st.sidebar:
     st.markdown("### 📋 Ficha técnica")
@@ -307,12 +318,22 @@ st.divider()
 
 # ---------- CARGA DE IMAGEN ----------
 st.markdown("#### ✨ Sube una foto o usa la camara")
-metodo = st.radio("Metodo de entrada", ["Subir foto", "Usar camara"], horizontal=True, label_visibility="collapsed")
+metodo = st.radio("Metodo de entrada", ["Subir foto", "Usar camara", "Camara en vivo (prueba)"], horizontal=True, label_visibility="collapsed")
+
+archivo = None
 
 if metodo == "Subir foto":
     archivo = st.file_uploader("Formatos aceptados: JPG, JPEG, PNG", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-else:
+elif metodo == "Usar camara":
     archivo = st.camera_input("Toma una foto con tu camara")
+else:
+    st.info("Prueba de video en vivo, sin IA todavia")
+    webrtc_streamer(
+        key="camara-viva",
+        video_processor_factory=VideoProcessor,
+        rtc_configuration=RTC_CONFIG,
+        media_stream_constraints={"video": True, "audio": False},
+    )
 
 if archivo is not None:
     col_img, col_result = st.columns([1, 1.3])

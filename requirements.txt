@@ -3,3 +3,7 @@ tensorflow
 pillow
 numpy
 pymongo
+aioice==0.10.2
+aiortc==1.15.0
+av==17.1.0
+streamlit-webrtc==0.78.1
