@@ -226,6 +226,19 @@ div[data-testid="stStatusWidget"] {
     object-fit: contain;
     border-radius: 14px;
 }
+
+[data-testid="stCameraInput"] button {
+}
+[data-testid="stCameraInput"] button:hover {
+}
+[data-testid="stCameraInput"] * {
+}
+[data-testid="stRadio"] * {
+}
+[data-testid="stWidgetLabel"] p {
+}
+[data-testid="stCameraInput"] label p {
+}
 </style>
 """, unsafe_allow_html=True)
 
