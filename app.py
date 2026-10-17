@@ -7,9 +7,6 @@ from tensorflow.keras.models import load_model
 from PIL import Image, ImageDraw
 from datetime import datetime
 import pymongo
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
-import av
-import time
 
 st.set_page_config(page_title="Clasificador Fauna Huánuco", page_icon="🐾", layout="wide")
 
@@ -229,26 +226,28 @@ div[data-testid="stStatusWidget"] {
 }
 
 [data-testid="stCameraInput"] button {
+    background: linear-gradient(135deg, #1F6B3A, #0B2E1A) !important;
+    color: #F2E9DC !important;
+    border: 1px solid #D4AF37 !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
 }
 [data-testid="stCameraInput"] button:hover {
+    border-color: #4ADE80 !important;
+    color: #FFFFFF !important;
 }
-[data-testid="stCameraInput"] * {
-}
-[data-testid="stRadio"] * {
-}
-[data-testid="stWidgetLabel"] p {
-}
-[data-testid="stCameraInput"] label p {
-}
-
 [data-testid="stRadio"] label,
 [data-testid="stRadio"] label p,
 [data-testid="stRadio"] label span,
 [data-testid="stRadio"] div[role="radiogroup"] *,
 [data-testid="stCameraInput"] label,
 [data-testid="stCameraInput"] label p,
+[data-testid="stCameraInput"] *,
 [data-testid="stWidgetLabel"],
 [data-testid="stWidgetLabel"] p {
+    color: #F2E9DC !important;
+    -webkit-text-fill-color: #F2E9DC !important;
+    opacity: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -275,36 +274,6 @@ def conectar_mongo():
         return None
 
 coleccion = conectar_mongo()
-
-RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-
-class VideoProcessor(VideoProcessorBase):
-    def __init__(self):
-        self.ultima_prediccion = 0
-        self.texto = "Analizando..."
-        self.color_texto = (255, 215, 0)
-
-    def recv(self, frame):
-        img = frame.to_image()
-        ahora = time.time()
-        if ahora - self.ultima_prediccion > 1.5:
-            self.ultima_prediccion = ahora
-            try:
-                img_resized = img.resize((224, 224))
-                img_array = np.array(img_resized) / 255.0
-                img_array = np.expand_dims(img_array, axis=0)
-                prediccion = modelo.predict(img_array, verbose=0)
-                indice = np.argmax(prediccion)
-                confianza = float(np.max(prediccion) * 100)
-                self.texto = f"{EMOJIS[indice]} {NOMBRE_COMUN[indice]}: {confianza:.1f}%"
-                self.color_texto = (0, 255, 0) if confianza > 70 else (255, 165, 0)
-            except Exception:
-                self.texto = "Error analizando"
-        draw = ImageDraw.Draw(img)
-        ancho_caja = max(260, len(self.texto) * 10)
-        draw.rectangle([(5, 5), (5 + ancho_caja, 35)], fill=(0, 0, 0))
-        draw.text((10, 10), self.texto, fill=self.color_texto)
-        return av.VideoFrame.from_image(img)
 
 # ---------- SIDEBAR ----------
 with st.sidebar:
@@ -363,22 +332,14 @@ st.divider()
 
 # ---------- CARGA DE IMAGEN ----------
 st.markdown("#### ✨ Sube una foto o usa la camara")
-metodo = st.radio("Metodo de entrada", ["Subir foto", "Usar camara", "Camara en vivo (prueba)"], horizontal=True, label_visibility="collapsed")
+metodo = st.radio("Metodo de entrada", ["Subir foto", "Usar camara"], horizontal=True, label_visibility="collapsed")
 
 archivo = None
 
 if metodo == "Subir foto":
     archivo = st.file_uploader("Formatos aceptados: JPG, JPEG, PNG", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-elif metodo == "Usar camara":
-    archivo = st.camera_input("Toma una foto con tu camara")
 else:
-    st.info("Prueba de video en vivo, sin IA todavia")
-    webrtc_streamer(
-        key="camara-viva",
-        video_processor_factory=VideoProcessor,
-        rtc_configuration=RTC_CONFIG,
-        media_stream_constraints={"video": True, "audio": False},
-    )
+    archivo = st.camera_input("Toma una foto con tu camara")
 
 if archivo is not None:
     col_img, col_result = st.columns([1, 1.3])
