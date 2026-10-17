@@ -9,6 +9,7 @@ from datetime import datetime
 import pymongo
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 import av
+import time
 
 st.set_page_config(page_title="Clasificador Fauna Huánuco", page_icon="🐾", layout="wide")
 
@@ -278,10 +279,31 @@ coleccion = conectar_mongo()
 RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 
 class VideoProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.ultima_prediccion = 0
+        self.texto = "Analizando..."
+        self.color_texto = (255, 215, 0)
+
     def recv(self, frame):
         img = frame.to_image()
+        ahora = time.time()
+        if ahora - self.ultima_prediccion > 1.5:
+            self.ultima_prediccion = ahora
+            try:
+                img_resized = img.resize((224, 224))
+                img_array = np.array(img_resized) / 255.0
+                img_array = np.expand_dims(img_array, axis=0)
+                prediccion = modelo.predict(img_array, verbose=0)
+                indice = np.argmax(prediccion)
+                confianza = float(np.max(prediccion) * 100)
+                self.texto = f"{EMOJIS[indice]} {NOMBRE_COMUN[indice]}: {confianza:.1f}%"
+                self.color_texto = (0, 255, 0) if confianza > 70 else (255, 165, 0)
+            except Exception:
+                self.texto = "Error analizando"
         draw = ImageDraw.Draw(img)
-        draw.text((10, 10), "PRUEBA - sin IA todavia", fill=(0, 255, 0))
+        ancho_caja = max(260, len(self.texto) * 10)
+        draw.rectangle([(5, 5), (5 + ancho_caja, 35)], fill=(0, 0, 0))
+        draw.text((10, 10), self.texto, fill=self.color_texto)
         return av.VideoFrame.from_image(img)
 
 # ---------- SIDEBAR ----------
