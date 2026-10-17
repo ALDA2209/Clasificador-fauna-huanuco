@@ -239,6 +239,16 @@ div[data-testid="stStatusWidget"] {
 }
 [data-testid="stCameraInput"] label p {
 }
+
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label p,
+[data-testid="stRadio"] label span,
+[data-testid="stRadio"] div[role="radiogroup"] *,
+[data-testid="stCameraInput"] label,
+[data-testid="stCameraInput"] label p,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p {
+}
 </style>
 """, unsafe_allow_html=True)
 
